@@ -1,6 +1,8 @@
 import pathlib
 import numpy as np
 import pandas as pd
+from scipy import stats
+from tabulate import tabulate
 from matplotlib import pyplot as plt
 import seaborn as sns
 from wordcloud import WordCloud
@@ -642,6 +644,45 @@ def plot_supp_fig5(df, output_dir):
     plt.savefig(pathlib.Path(output_dir, 'supp-fig-05-wordcloud.svg'))
     plt.close(fig)
 
+def correlation_analysis(df):
+    print('Correlation analysis between prediction improvement and usefullness ratings')
+    print('Baseline group')
+    print(tabulate(df[df['Group']=='xai'].loc[:, ['Q_pred', 'Q_saliency', 'Q_region', 'prediction_improvement']].corr(method='spearman'), 
+               headers='keys', tablefmt='psql'))
+    print('\n')
+    print('XAI group')
+    print(tabulate(df[df['Group']=='xai'].loc[:, ['Q_pred', 'Q_saliency', 'Q_region', 'prediction_improvement']].corr(method='spearman'), 
+               headers='keys', tablefmt='psql'))
+
+    print('\n')
+    print('Comparisons / Spearmann correlation coefficients with p-values')
+
+    res = stats.spearmanr(df[df['Group']=='baseline'].loc[:, ['Q_pred']],
+                          df[df['Group']=='baseline'].loc[:, ['prediction_improvement']] )
+    print('[Baseline] Pred. usefulness vs prediction improvement:', 
+          '%3.5f' % res.statistic, 
+          '%d'    % len(df[df['Group']=='baseline'].loc[:, ['Q_pred']]), 
+          '%3.5f' % res.pvalue)
+
+
+    res = stats.spearmanr(df[df['Group']=='xai'].loc[:, ['Q_saliency']],
+                          df[df['Group']=='xai'].loc[:, ['prediction_improvement']])
+    print('[XAI] prediction improvement vs saliency:', res.statistic, len(df[df['Group']=='xai'].loc[:, ['Q_saliency']]), res.pvalue)
+
+    res = stats.spearmanr(df[df['Group']=='xai'].loc[:, ['Q_region']],
+                          df[df['Group']=='xai'].loc[:, ['prediction_improvement']] )
+    print('[XAI] prediction improvement vs region:', 
+          '%3.5f' % res.statistic, 
+          '%d'    % len(df[df['Group']=='xai'].loc[:, ['Q_region']]), 
+          '%3.5f' % res.pvalue)
+
+    res = stats.spearmanr(df[df['Group']=='xai'].loc[:, ['Q_saliency']],
+                          df[df['Group']=='xai'].loc[:, ['Q_region']] )
+    print('[XAI] region vs saliency:', 
+          '%3.5f' % res.statistic, 
+          '%d'    % len(df[df['Group']=='xai'].loc[:, ['Q_saliency']]), 
+          '%3.5f' % res.pvalue)
+
 
 # Example usage:
 if __name__ == "__main__":
@@ -656,3 +697,4 @@ if __name__ == "__main__":
     plot_supp_fig3(df, output_dir)
     plot_supp_fig4(df, output_dir)
     plot_supp_fig5(df, output_dir)
+    correlation_analysis(df)
