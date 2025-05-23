@@ -646,8 +646,8 @@ def plot_supp_fig5(df, output_dir):
 
 def correlation_analysis(df):
     print('Correlation analysis between prediction improvement and usefullness ratings')
-    print('Baseline group')
-    print(tabulate(df[df['Group']=='xai'].loc[:, ['Q_pred', 'Q_saliency', 'Q_region', 'prediction_improvement']].corr(method='spearman'), 
+    print('AI group (Baseline)')
+    print(tabulate(df[df['Group']=='baseline'].loc[:, ['Q_pred', 'prediction_improvement']].corr(method='spearman'), 
                headers='keys', tablefmt='psql'))
     print('\n')
     print('XAI group')
