@@ -657,21 +657,26 @@ def correlation_analysis(df):
     print('\n')
     print('Comparisons / Spearmann correlation coefficients with p-values')
 
-    res = stats.spearmanr(df[df['Group']=='baseline'].loc[:, ['Q_pred']],
-                          df[df['Group']=='baseline'].loc[:, ['prediction_improvement']] )
-    print('[Baseline] Pred. usefulness vs prediction improvement:', 
+    res = stats.spearmanr(df[df['Group']=='baseline'].loc[:, ['prediction_improvement']],
+                          df[df['Group']=='baseline'].loc[:, ['Q_pred']] )
+    print('[Baseline] Prediction improvement vs. Q_pred:', 
           '%3.5f' % res.statistic, 
           '%d'    % len(df[df['Group']=='baseline'].loc[:, ['Q_pred']]), 
           '%3.5f' % res.pvalue)
 
 
+    res = stats.spearmanr(df[df['Group']=='xai'].loc[:, ['Q_pred']],
+                          df[df['Group']=='xai'].loc[:, ['prediction_improvement']])
+    print('[XAI] prediction improvement vs Q_pred:', res.statistic, len(df[df['Group']=='xai'].loc[:, ['Q_pred']]), res.pvalue)
+
+
     res = stats.spearmanr(df[df['Group']=='xai'].loc[:, ['Q_saliency']],
                           df[df['Group']=='xai'].loc[:, ['prediction_improvement']])
-    print('[XAI] prediction improvement vs saliency:', res.statistic, len(df[df['Group']=='xai'].loc[:, ['Q_saliency']]), res.pvalue)
+    print('[XAI] prediction improvement vs Q_saliency:', res.statistic, len(df[df['Group']=='xai'].loc[:, ['Q_saliency']]), res.pvalue)
 
     res = stats.spearmanr(df[df['Group']=='xai'].loc[:, ['Q_region']],
                           df[df['Group']=='xai'].loc[:, ['prediction_improvement']] )
-    print('[XAI] prediction improvement vs region:', 
+    print('[XAI] prediction improvement vs Q_region:', 
           '%3.5f' % res.statistic, 
           '%d'    % len(df[df['Group']=='xai'].loc[:, ['Q_region']]), 
           '%3.5f' % res.pvalue)
@@ -682,7 +687,289 @@ def correlation_analysis(df):
           '%3.5f' % res.statistic, 
           '%d'    % len(df[df['Group']=='xai'].loc[:, ['Q_saliency']]), 
           '%3.5f' % res.pvalue)
+    
+    res = stats.spearmanr(df[df['Group']=='xai'].loc[:, ['Q_pred']],
+                          df[df['Group']=='xai'].loc[:, ['Q_saliency']] )
+    print('[XAI] Q_pred vs Q_saliency:', 
+          '%3.5f' % res.statistic, 
+          '%d'    % len(df[df['Group']=='xai'].loc[:, ['Q_saliency']]), 
+          '%3.5f' % res.pvalue)
+    
+def statistical_tests(df):
+    """
+    Perform statistical tests on prediction and confidence improvements between groups.
+    
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        DataFrame containing the experimental data
+    """
+    
+    # Helper function to extract participant-level means for a specific condition
+    def get_condition_data(group, ai_true_pred, metric):
+        return pd.DataFrame([
+            float(df[(df['ResponseId'] == response_id) & (df['AI_isTruePred'] == ai_true_pred)][metric].mean())
+            for response_id in df[df['Group'] == group]['ResponseId'].unique()
+        ]).squeeze().to_numpy()
+    
+    # Helper function to print descriptive statistics
+    def print_descriptive_stats(name1, data1, name2, data2):
+        print(f"{name1} (n={len(data1)}) vs. {name2} (n={len(data2)})")
+        print("-" * 50)
+        print(f"{name1} (M={np.mean(data1):.3f}, Mdn={np.median(data1):.3f}, SD={np.std(data1):.3f})")
+        print(f"{name2} (M={np.mean(data2):.3f}, Mdn={np.median(data2):.3f}, SD={np.std(data2):.3f})")
+        print()
+    
+    # Helper function to run and display normality and variance tests
+    def print_assumption_tests(name1, data1, name2, data2):
+        # Shapiro-Wilk test for normality
+        sw1 = stats.shapiro(data1)
+        sw2 = stats.shapiro(data2)
+        print(f"Shapiro-Wilk ({name1}):".ljust(35) + 
+              f"Statistic={sw1.statistic:9.3f}, p={np.format_float_scientific(sw1.pvalue, precision=3)}, " + 
+              f"{'Normal' if sw1.pvalue > 0.05 else 'Non-normal'}")
+        
+        print(f"Shapiro-Wilk ({name2}):".ljust(35) + 
+              f"Statistic={sw2.statistic:9.3f}, p={np.format_float_scientific(sw2.pvalue, precision=3)}, " + 
+              f"{'Normal' if sw2.pvalue > 0.05 else 'Non-normal'}")
+        
+        # Levene's test for homogeneity of variance
+        lev = stats.levene(data1, data2)
+        print(f"Levene's test:".ljust(35) + 
+              f"Statistic={lev.statistic:9.3f}, p={lev.pvalue:.5f}, " + 
+              f"{'Equal variances' if lev.pvalue > 0.05 else 'Unequal variances'}")
+        print()
+    
+    # Helper function to run appropriate statistical test based on normality
+    def run_statistical_test(name1, data1, name2, data2):
+        # Check normality assumptions
+        sw1 = stats.shapiro(data1)
+        sw2 = stats.shapiro(data2)
+        
+        # If both distributions are normal, use t-test
+        if sw1.pvalue > 0.05 and sw2.pvalue > 0.05:
+            t_result = stats.ttest_ind(data1, data2, equal_var=(stats.levene(data1, data2).pvalue > 0.05))
+            print(f"Independent t-test:".ljust(35) + 
+                  f"Statistic={t_result.statistic:9.3f}, p={t_result.pvalue:.5f}, df={int(t_result.df)}")
+            
+            # Calculate effect size (Cohen's d)
+            r = np.sqrt(t_result.statistic**2 / (t_result.statistic**2 + t_result.df))
+            print(f"Effect size (r):".ljust(35) + f"{r:.3f}")
+        else:
+            # Use non-parametric test (Mann-Whitney U) if data not normal
+            mw_result = stats.mannwhitneyu(data1, data2)
+            print(f"Mann–Whitney U test:".ljust(35) + 
+                  f"Statistic={mw_result.statistic:9.3f}, p={mw_result.pvalue:.5f}")
+        print()
+    
+    # =========================================================================
+    # SECTION 1: PREDICTION IMPROVEMENT - AI TRUE/FALSE ANALYSIS
+    # =========================================================================
+    print("\n" + "=" * 80)
+    print("SECTION 1: PREDICTION IMPROVEMENT - AI TRUE/FALSE ANALYSIS")
+    print("=" * 80)
+    
+    # Extract data for all conditions
+    baseline_false = get_condition_data('baseline', 0, 'prediction_improvement')
+    xai_false = get_condition_data('xai', 0, 'prediction_improvement')
+    baseline_true = get_condition_data('baseline', 1, 'prediction_improvement')
+    xai_true = get_condition_data('xai', 1, 'prediction_improvement')
+    
+    # Comparison 1: Baseline vs. XAI when AI prediction is FALSE
+    print("\nComparison 1.1: Baseline vs. XAI (When AI Model Prediction is FALSE)")
+    print_descriptive_stats("Baseline (AI=FALSE)", baseline_false, "XAI (AI=FALSE)", xai_false)
+    print_assumption_tests("Baseline (AI=FALSE)", baseline_false, "XAI (AI=FALSE)", xai_false)
+    run_statistical_test("Baseline (AI=FALSE)", baseline_false, "XAI (AI=FALSE)", xai_false)
+    
+    # Comparison 2: Baseline vs. XAI when AI prediction is TRUE
+    print("\nComparison 1.2: Baseline vs. XAI (When AI Model Prediction is TRUE)")
+    print_descriptive_stats("Baseline (AI=TRUE)", baseline_true, "XAI (AI=TRUE)", xai_true)
+    print_assumption_tests("Baseline (AI=TRUE)", baseline_true, "XAI (AI=TRUE)", xai_true)
+    run_statistical_test("Baseline (AI=TRUE)", baseline_true, "XAI (AI=TRUE)", xai_true)
+    
+    # Comparison 3: Within Baseline group, FALSE vs. TRUE AI predictions
+    print("\nComparison 1.3: FALSE vs. TRUE AI Predictions (Baseline Group)")
+    print_descriptive_stats("Baseline (AI=FALSE)", baseline_false, "Baseline (AI=TRUE)", baseline_true)
+    print_assumption_tests("Baseline (AI=FALSE)", baseline_false, "Baseline (AI=TRUE)", baseline_true)
+    run_statistical_test("Baseline (AI=FALSE)", baseline_false, "Baseline (AI=TRUE)", baseline_true)
+    
+    # Comparison 4: Within XAI group, FALSE vs. TRUE AI predictions
+    print("\nComparison 1.4: FALSE vs. TRUE AI Predictions (XAI Group)")
+    print_descriptive_stats("XAI (AI=FALSE)", xai_false, "XAI (AI=TRUE)", xai_true)
+    print_assumption_tests("XAI (AI=FALSE)", xai_false, "XAI (AI=TRUE)", xai_true)
+    run_statistical_test("XAI (AI=FALSE)", xai_false, "XAI (AI=TRUE)", xai_true)
+    
+    # =========================================================================
+    # SECTION 2: CONFIDENCE IMPROVEMENT - AI TRUE/FALSE ANALYSIS
+    # =========================================================================
+    print("\n" + "=" * 80)
+    print("SECTION 2: CONFIDENCE IMPROVEMENT - AI TRUE/FALSE ANALYSIS")
+    print("=" * 80)
+    
+    # Extract data for all conditions
+    baseline_false = get_condition_data('baseline', 0, 'confidence_improvement')
+    xai_false = get_condition_data('xai', 0, 'confidence_improvement')
+    baseline_true = get_condition_data('baseline', 1, 'confidence_improvement')
+    xai_true = get_condition_data('xai', 1, 'confidence_improvement')
+    
+    # Comparison 1: Baseline vs. XAI when AI prediction is FALSE
+    print("\nComparison 2.1: Baseline vs. XAI (When AI Model Prediction is FALSE)")
+    print_descriptive_stats("Baseline (AI=FALSE)", baseline_false, "XAI (AI=FALSE)", xai_false)
+    print_assumption_tests("Baseline (AI=FALSE)", baseline_false, "XAI (AI=FALSE)", xai_false)
+    run_statistical_test("Baseline (AI=FALSE)", baseline_false, "XAI (AI=FALSE)", xai_false)
+    
+    # Comparison 2: Baseline vs. XAI when AI prediction is TRUE
+    print("\nComparison 2.2: Baseline vs. XAI (When AI Model Prediction is TRUE)")
+    print_descriptive_stats("Baseline (AI=TRUE)", baseline_true, "XAI (AI=TRUE)", xai_true)
+    print_assumption_tests("Baseline (AI=TRUE)", baseline_true, "XAI (AI=TRUE)", xai_true)
+    run_statistical_test("Baseline (AI=TRUE)", baseline_true, "XAI (AI=TRUE)", xai_true)
+    
+    # Comparison 3: Within Baseline group, FALSE vs. TRUE AI predictions
+    print("\nComparison 2.3: FALSE vs. TRUE AI Predictions (Baseline Group)")
+    print_descriptive_stats("Baseline (AI=FALSE)", baseline_false, "Baseline (AI=TRUE)", baseline_true)
+    print_assumption_tests("Baseline (AI=FALSE)", baseline_false, "Baseline (AI=TRUE)", baseline_true)
+    run_statistical_test("Baseline (AI=FALSE)", baseline_false, "Baseline (AI=TRUE)", baseline_true)
+    
+    # Comparison 4: Within XAI group, FALSE vs. TRUE AI predictions
+    print("\nComparison 2.4: FALSE vs. TRUE AI Predictions (XAI Group)")
+    print_descriptive_stats("XAI (AI=FALSE)", xai_false, "XAI (AI=TRUE)", xai_true)
+    print_assumption_tests("XAI (AI=FALSE)", xai_false, "XAI (AI=TRUE)", xai_true)
+    run_statistical_test("XAI (AI=FALSE)", xai_false, "XAI (AI=TRUE)", xai_true)
 
+    def difficulty_statistical_tests(df):
+        """
+        Perform statistical tests on prediction and confidence improvements between easy and hard samples.
+        
+        Parameters:
+        -----------
+        df : pandas.DataFrame
+            DataFrame containing the experimental data
+        """
+        
+        # Define easy samples
+        easy_samples = [
+            'KSSlide133', 'NSSlide103', 'KSSlide5', 'WSSlide373',
+            'UnaffectedSlide204', '22q11DSSlide210', 'UnaffectedSlide229',
+            'AngelmanSlide13', 'NSSlide198'
+        ]
+        
+        # Create indices for different groups
+        i_baseline_easy = [i for i in range(0, df.shape[0]) if (df.iloc[i]['SlideName'] in easy_samples) and (df.iloc[i]['Group']=='baseline')]
+        i_baseline_hard = [i for i in range(0, df.shape[0]) if (df.iloc[i]['SlideName'] not in easy_samples) and (df.iloc[i]['Group']=='baseline')]
+        i_xai_easy = [i for i in range(0, df.shape[0]) if (df.iloc[i]['SlideName'] in easy_samples) and (df.iloc[i]['Group']=='xai')]
+        i_xai_hard = [i for i in range(0, df.shape[0]) if (df.iloc[i]['SlideName'] not in easy_samples) and (df.iloc[i]['Group']=='xai')]
+        
+        # Helper function to extract participant-level means for a specific condition
+        def get_condition_data(indices, metric):
+            df_group = df.iloc[indices].reset_index(drop=True)
+            return pd.DataFrame([
+                df_group[df_group['ResponseId']==ResponseId][metric].mean() 
+                for ResponseId in sorted(set(df_group['ResponseId'].tolist()))
+            ]).squeeze().to_numpy()
+        
+        # Helper function to print descriptive statistics
+        def print_descriptive_stats(name1, data1, name2, data2):
+            print(f"{name1} ({len(data1)}) vs. {name2} ({len(data2)})")
+            print("-" * 30)
+            print(f"{name1} (M = {np.mean(data1):.3f}, SD = {np.std(data1):.3f})")
+            print(f"{name2} (M = {np.mean(data2):.3f}, SD = {np.std(data2):.3f})")
+            print()
+        
+        # Helper function to run and display normality and variance tests
+        def print_assumption_tests(name1, data1, name2, data2):
+            # Shapiro-Wilk test for normality
+            sw1 = stats.shapiro(data1)
+            sw2 = stats.shapiro(data2)
+            print(f"Shapiro-Wilk ({name1})  Statistic={sw1.statistic:9.2f}, p={np.format_float_scientific(sw1.pvalue, unique=False, precision=5)}, {sw1.pvalue>0.05}")
+            print(f"Shapiro-Wilk ({name2})  Statistic={sw2.statistic:9.2f}, p={np.format_float_scientific(sw2.pvalue, unique=False, precision=5)}, {sw2.pvalue>0.05}")
+            
+            # Levene's test for homogeneity of variance
+            lev = stats.levene(data1, data2)
+            print(f"Levene.                       Statistic={lev.statistic:9.2f}, p={lev.pvalue:.5f}, {lev.pvalue>0.05}")
+            print()
+        
+        # Helper function to run Mann-Whitney U test (non-parametric)
+        def run_mann_whitney_test(name1, data1, name2, data2):
+            mw_result = stats.mannwhitneyu(data1, data2)
+            print(f"Mann–Whitney U test.          Statistic={mw_result.statistic:9.2f}, p={mw_result.pvalue:.5f}")
+            print()
+            
+        # =========================================================================
+        # SECTION 3: PREDICTION IMPROVEMENT - SAMPLE DIFFICULTY ANALYSIS
+        # =========================================================================
+        print("\n" + "=" * 80)
+        print("SECTION 3: PREDICTION IMPROVEMENT - SAMPLE DIFFICULTY ANALYSIS")
+        print("=" * 80)
+        
+        # Extract data for all conditions
+        baseline_easy_pred = get_condition_data(i_baseline_easy, 'prediction_improvement')
+        baseline_hard_pred = get_condition_data(i_baseline_hard, 'prediction_improvement')
+        xai_easy_pred = get_condition_data(i_xai_easy, 'prediction_improvement')
+        xai_hard_pred = get_condition_data(i_xai_hard, 'prediction_improvement')
+        
+        # Comparison 1: Baseline Easy vs. XAI Easy
+        print("\nComparison 3.1: Baseline Easy vs. XAI Easy")
+        print_descriptive_stats("baseline_EASY", baseline_easy_pred, "xai_EASY", xai_easy_pred)
+        print_assumption_tests("baseline_EASY", baseline_easy_pred, "xai_EASY", xai_easy_pred)
+        run_mann_whitney_test("baseline_EASY", baseline_easy_pred, "xai_EASY", xai_easy_pred)
+        
+        # Comparison 2: Baseline Hard vs. XAI Hard
+        print("\nComparison 3.2: Baseline Hard vs. XAI Hard")
+        print_descriptive_stats("baseline_HARD", baseline_hard_pred, "xai_HARD", xai_hard_pred)
+        print_assumption_tests("baseline_HARD", baseline_hard_pred, "xai_HARD", xai_hard_pred)
+        run_mann_whitney_test("baseline_HARD", baseline_hard_pred, "xai_HARD", xai_hard_pred)
+        
+        # Comparison 3: Within Baseline group, Easy vs. Hard samples
+        print("\nComparison 3.3: Easy vs. Hard samples (Baseline Group)")
+        print_descriptive_stats("baseline_EASY", baseline_easy_pred, "baseline_HARD", baseline_hard_pred)
+        print_assumption_tests("baseline_EASY", baseline_easy_pred, "baseline_HARD", baseline_hard_pred)
+        run_mann_whitney_test("baseline_EASY", baseline_easy_pred, "baseline_HARD", baseline_hard_pred)
+        
+        # Comparison 4: Within XAI group, Easy vs. Hard samples
+        print("\nComparison 3.4: Easy vs. Hard samples (XAI Group)")
+        print_descriptive_stats("xai_EASY", xai_easy_pred, "xai_HARD", xai_hard_pred)
+        print_assumption_tests("xai_EASY", xai_easy_pred, "xai_HARD", xai_hard_pred)
+        run_mann_whitney_test("xai_EASY", xai_easy_pred, "xai_HARD", xai_hard_pred)
+        
+        # =========================================================================
+        # SECTION 4: CONFIDENCE IMPROVEMENT - SAMPLE DIFFICULTY ANALYSIS
+        # =========================================================================
+        print("\n" + "=" * 80)
+        print("SECTION 4: CONFIDENCE IMPROVEMENT - SAMPLE DIFFICULTY ANALYSIS")
+        print("=" * 80)
+        
+        # Extract data for all conditions
+        baseline_easy_conf = get_condition_data(i_baseline_easy, 'confidence_improvement')
+        baseline_hard_conf = get_condition_data(i_baseline_hard, 'confidence_improvement')
+        xai_easy_conf = get_condition_data(i_xai_easy, 'confidence_improvement')
+        xai_hard_conf = get_condition_data(i_xai_hard, 'confidence_improvement')
+        
+        # Comparison 1: Baseline Easy vs. XAI Easy
+        print("\nComparison 4.1: Baseline Easy vs. XAI Easy")
+        print_descriptive_stats("baseline_EASY", baseline_easy_conf, "xai_EASY", xai_easy_conf)
+        print_assumption_tests("baseline_EASY", baseline_easy_conf, "xai_EASY", xai_easy_conf)
+        run_mann_whitney_test("baseline_EASY", baseline_easy_conf, "xai_EASY", xai_easy_conf)
+        
+        # Comparison 2: Baseline Hard vs. XAI Hard
+        print("\nComparison 4.2: Baseline Hard vs. XAI Hard")
+        print_descriptive_stats("baseline_HARD", baseline_hard_conf, "xai_HARD", xai_hard_conf)
+        print_assumption_tests("baseline_HARD", baseline_hard_conf, "xai_HARD", xai_hard_conf)
+        run_mann_whitney_test("baseline_HARD", baseline_hard_conf, "xai_HARD", xai_hard_conf)
+        
+        # Comparison 3: Within Baseline group, Easy vs. Hard samples
+        print("\nComparison 4.3: Easy vs. Hard samples (Baseline Group)")
+        print_descriptive_stats("baseline_EASY", baseline_easy_conf, "baseline_HARD", baseline_hard_conf)
+        print_assumption_tests("baseline_EASY", baseline_easy_conf, "baseline_HARD", baseline_hard_conf)
+        run_mann_whitney_test("baseline_EASY", baseline_easy_conf, "baseline_HARD", baseline_hard_conf)
+        
+        # Comparison 4: Within XAI group, Easy vs. Hard samples
+        print("\nComparison 4.4: Easy vs. Hard samples (XAI Group)")
+        print_descriptive_stats("xai_EASY", xai_easy_conf, "xai_HARD", xai_hard_conf)
+        print_assumption_tests("xai_EASY", xai_easy_conf, "xai_HARD", xai_hard_conf)
+        run_mann_whitney_test("xai_EASY", xai_easy_conf, "xai_HARD", xai_hard_conf)
+
+    # Call the nested function to perform difficulty analysis
+    difficulty_statistical_tests(df)
 
 # Example usage:
 if __name__ == "__main__":
@@ -698,3 +985,4 @@ if __name__ == "__main__":
     plot_supp_fig4(df, output_dir)
     plot_supp_fig5(df, output_dir)
     correlation_analysis(df)
+    statistical_tests(df)
