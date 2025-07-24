@@ -1,0 +1,257 @@
+Correlation analysis between prediction improvement and usefullness ratings
+AI group (Baseline)
++------------------------+-----------+--------------------------+
+|                        |    Q_pred |   prediction_improvement |
+|------------------------+-----------+--------------------------|
+| Q_pred                 | 1         |                0.0405314 |
+| prediction_improvement | 0.0405314 |                1         |
++------------------------+-----------+--------------------------+
+
+
+XAI group
++------------------------+------------+--------------+------------+--------------------------+
+|                        |     Q_pred |   Q_saliency |   Q_region |   prediction_improvement |
+|------------------------+------------+--------------+------------+--------------------------|
+| Q_pred                 |  1         |     0.376458 |   0.376076 |               -0.0282707 |
+| Q_saliency             |  0.376458  |     1        |   0.927033 |                0.150868  |
+| Q_region               |  0.376076  |     0.927033 |   1        |                0.166679  |
+| prediction_improvement | -0.0282707 |     0.150868 |   0.166679 |                1         |
++------------------------+------------+--------------+------------+--------------------------+
+
+
+Comparisons / Spearmann correlation coefficients with p-values
+[Baseline] Prediction improvement vs. Q_pred: 0.04053 306 0.47994
+[XAI] prediction improvement vs Q_pred: -0.02827066408391927 230 0.6697470996241566
+[XAI] prediction improvement vs Q_saliency: 0.1508678427615961 230 0.022098330512194987
+[XAI] prediction improvement vs Q_region: 0.16668 230 0.01135
+[XAI] region vs saliency: 0.92703 230 0.00000
+[XAI] Q_pred vs Q_saliency: 0.37646 230 0.00000
+
+================================================================================
+SECTION 1: PREDICTION IMPROVEMENT - AI TRUE/FALSE ANALYSIS
+================================================================================
+
+Comparison 1.1: Baseline vs. XAI (When AI Model Prediction is FALSE)
+Baseline (AI=FALSE) (n=18) vs. XAI (AI=FALSE) (n=13)
+--------------------------------------------------
+Baseline (AI=FALSE) (M=-0.213, Mdn=-0.167, SD=0.228)
+XAI (AI=FALSE) (M=-0.205, Mdn=-0.167, SD=0.246)
+
+Shapiro-Wilk (Baseline (AI=FALSE)):Statistic=    0.820, p=2.974e-03, Non-normal
+Shapiro-Wilk (XAI (AI=FALSE)):     Statistic=    0.781, p=4.102e-03, Non-normal
+Levene's test:                     Statistic=    0.002, p=0.96816, Equal variances
+
+Mann–Whitney U test:               Statistic=  113.000, p=0.88226
+
+
+Comparison 1.2: Baseline vs. XAI (When AI Model Prediction is TRUE)
+Baseline (AI=TRUE) (n=18) vs. XAI (AI=TRUE) (n=13)
+--------------------------------------------------
+Baseline (AI=TRUE) (M=0.190, Mdn=0.167, SD=0.103)
+XAI (AI=TRUE) (M=0.146, Mdn=0.083, SD=0.116)
+
+Shapiro-Wilk (Baseline (AI=TRUE)): Statistic=    0.902, p=6.245e-02, Normal
+Shapiro-Wilk (XAI (AI=TRUE)):      Statistic=    0.905, p=1.548e-01, Normal
+Levene's test:                     Statistic=    0.332, p=0.56867, Equal variances
+
+Independent t-test:                Statistic=    1.068, p=0.29425, df=29
+Effect size (r):                   0.195
+
+
+Comparison 1.3: FALSE vs. TRUE AI Predictions (Baseline Group)
+Baseline (AI=FALSE) (n=18) vs. Baseline (AI=TRUE) (n=18)
+--------------------------------------------------
+Baseline (AI=FALSE) (M=-0.213, Mdn=-0.167, SD=0.228)
+Baseline (AI=TRUE) (M=0.190, Mdn=0.167, SD=0.103)
+
+Shapiro-Wilk (Baseline (AI=FALSE)):Statistic=    0.820, p=2.974e-03, Non-normal
+Shapiro-Wilk (Baseline (AI=TRUE)): Statistic=    0.902, p=6.245e-02, Normal
+Levene's test:                     Statistic=   11.769, p=0.00160, Unequal variances
+
+Mann–Whitney U test:               Statistic=    8.000, p=0.00000
+
+
+Comparison 1.4: FALSE vs. TRUE AI Predictions (XAI Group)
+XAI (AI=FALSE) (n=13) vs. XAI (AI=TRUE) (n=13)
+--------------------------------------------------
+XAI (AI=FALSE) (M=-0.205, Mdn=-0.167, SD=0.246)
+XAI (AI=TRUE) (M=0.146, Mdn=0.083, SD=0.116)
+
+Shapiro-Wilk (XAI (AI=FALSE)):     Statistic=    0.781, p=4.102e-03, Non-normal
+Shapiro-Wilk (XAI (AI=TRUE)):      Statistic=    0.905, p=1.548e-01, Normal
+Levene's test:                     Statistic=    3.752, p=0.06459, Equal variances
+
+Mann–Whitney U test:               Statistic=    6.000, p=0.00005
+
+
+================================================================================
+SECTION 2: CONFIDENCE IMPROVEMENT - AI TRUE/FALSE ANALYSIS
+================================================================================
+
+Comparison 2.1: Baseline vs. XAI (When AI Model Prediction is FALSE)
+Baseline (AI=FALSE) (n=18) vs. XAI (AI=FALSE) (n=13)
+--------------------------------------------------
+Baseline (AI=FALSE) (M=-0.056, Mdn=-0.167, SD=0.655)
+XAI (AI=FALSE) (M=-0.154, Mdn=-0.500, SD=0.895)
+
+Shapiro-Wilk (Baseline (AI=FALSE)):Statistic=    0.899, p=5.453e-02, Normal
+Shapiro-Wilk (XAI (AI=FALSE)):     Statistic=    0.875, p=6.149e-02, Normal
+Levene's test:                     Statistic=    0.888, p=0.35367, Equal variances
+
+Independent t-test:                Statistic=    0.341, p=0.73521, df=29
+Effect size (r):                   0.063
+
+
+Comparison 2.2: Baseline vs. XAI (When AI Model Prediction is TRUE)
+Baseline (AI=TRUE) (n=18) vs. XAI (AI=TRUE) (n=13)
+--------------------------------------------------
+Baseline (AI=TRUE) (M=0.296, Mdn=0.292, SD=0.244)
+XAI (AI=TRUE) (M=0.409, Mdn=0.333, SD=0.887)
+
+Shapiro-Wilk (Baseline (AI=TRUE)): Statistic=    0.965, p=7.046e-01, Normal
+Shapiro-Wilk (XAI (AI=TRUE)):      Statistic=    0.911, p=1.907e-01, Normal
+Levene's test:                     Statistic=    8.080, p=0.00811, Unequal variances
+
+Independent t-test:                Statistic=   -0.429, p=0.67495, df=13
+Effect size (r):                   0.117
+
+
+Comparison 2.3: FALSE vs. TRUE AI Predictions (Baseline Group)
+Baseline (AI=FALSE) (n=18) vs. Baseline (AI=TRUE) (n=18)
+--------------------------------------------------
+Baseline (AI=FALSE) (M=-0.056, Mdn=-0.167, SD=0.655)
+Baseline (AI=TRUE) (M=0.296, Mdn=0.292, SD=0.244)
+
+Shapiro-Wilk (Baseline (AI=FALSE)):Statistic=    0.899, p=5.453e-02, Normal
+Shapiro-Wilk (Baseline (AI=TRUE)): Statistic=    0.965, p=7.046e-01, Normal
+Levene's test:                     Statistic=    4.000, p=0.05354, Equal variances
+
+Independent t-test:                Statistic=   -2.075, p=0.04558, df=34
+Effect size (r):                   0.335
+
+
+Comparison 2.4: FALSE vs. TRUE AI Predictions (XAI Group)
+XAI (AI=FALSE) (n=13) vs. XAI (AI=TRUE) (n=13)
+--------------------------------------------------
+XAI (AI=FALSE) (M=-0.154, Mdn=-0.500, SD=0.895)
+XAI (AI=TRUE) (M=0.409, Mdn=0.333, SD=0.887)
+
+Shapiro-Wilk (XAI (AI=FALSE)):     Statistic=    0.875, p=6.149e-02, Normal
+Shapiro-Wilk (XAI (AI=TRUE)):      Statistic=    0.911, p=1.907e-01, Normal
+Levene's test:                     Statistic=    0.003, p=0.95882, Equal variances
+
+Independent t-test:                Statistic=   -1.547, p=0.13488, df=24
+Effect size (r):                   0.301
+
+
+================================================================================
+SECTION 3: PREDICTION IMPROVEMENT - SAMPLE DIFFICULTY ANALYSIS
+================================================================================
+
+Comparison 3.1: Baseline Easy vs. XAI Easy
+baseline_EASY (18) vs. xai_EASY (13)
+------------------------------
+baseline_EASY (M = 0.136, SD = 0.126)
+xai_EASY (M = 0.144, SD = 0.115)
+
+Shapiro-Wilk (baseline_EASY)  Statistic=     0.84, p=6.95018e-03, False
+Shapiro-Wilk (xai_EASY)  Statistic=     0.87, p=5.42198e-02, True
+Levene.                       Statistic=     0.00, p=0.94990, True
+
+Mann–Whitney U test.          Statistic=   108.50, p=0.73602
+
+
+Comparison 3.2: Baseline Hard vs. XAI Hard
+baseline_HARD (18) vs. xai_HARD (13)
+------------------------------
+baseline_HARD (M = -0.023, SD = 0.162)
+xai_HARD (M = -0.083, SD = 0.208)
+
+Shapiro-Wilk (baseline_HARD)  Statistic=     0.86, p=1.10632e-02, False
+Shapiro-Wilk (xai_HARD)  Statistic=     0.90, p=1.29816e-01, True
+Levene.                       Statistic=     0.71, p=0.40607, True
+
+Mann–Whitney U test.          Statistic=   134.50, p=0.48091
+
+
+Comparison 3.3: Easy vs. Hard samples (Baseline Group)
+baseline_EASY (18) vs. baseline_HARD (18)
+------------------------------
+baseline_EASY (M = 0.136, SD = 0.126)
+baseline_HARD (M = -0.023, SD = 0.162)
+
+Shapiro-Wilk (baseline_EASY)  Statistic=     0.84, p=6.95018e-03, False
+Shapiro-Wilk (baseline_HARD)  Statistic=     0.86, p=1.10632e-02, False
+Levene.                       Statistic=     0.51, p=0.48145, True
+
+Mann–Whitney U test.          Statistic=   246.50, p=0.00548
+
+
+Comparison 3.4: Easy vs. Hard samples (XAI Group)
+xai_EASY (13) vs. xai_HARD (13)
+------------------------------
+xai_EASY (M = 0.144, SD = 0.115)
+xai_HARD (M = -0.083, SD = 0.208)
+
+Shapiro-Wilk (xai_EASY)  Statistic=     0.87, p=5.42198e-02, True
+Shapiro-Wilk (xai_HARD)  Statistic=     0.90, p=1.29816e-01, True
+Levene.                       Statistic=     1.89, p=0.18145, True
+
+Mann–Whitney U test.          Statistic=   138.00, p=0.00535
+
+
+================================================================================
+SECTION 4: CONFIDENCE IMPROVEMENT - SAMPLE DIFFICULTY ANALYSIS
+================================================================================
+
+Comparison 4.1: Baseline Easy vs. XAI Easy
+baseline_EASY (18) vs. xai_EASY (13)
+------------------------------
+baseline_EASY (M = 0.302, SD = 0.257)
+xai_EASY (M = 0.422, SD = 0.846)
+
+Shapiro-Wilk (baseline_EASY)  Statistic=     0.97, p=7.77265e-01, True
+Shapiro-Wilk (xai_EASY)  Statistic=     0.89, p=1.01671e-01, True
+Levene.                       Statistic=     6.72, p=0.01475, False
+
+Mann–Whitney U test.          Statistic=   120.50, p=0.90388
+
+
+Comparison 4.2: Baseline Hard vs. XAI Hard
+baseline_HARD (18) vs. xai_HARD (13)
+------------------------------
+baseline_HARD (M = 0.052, SD = 0.557)
+xai_HARD (M = 0.020, SD = 0.904)
+
+Shapiro-Wilk (baseline_HARD)  Statistic=     0.85, p=9.34941e-03, False
+Shapiro-Wilk (xai_HARD)  Statistic=     0.85, p=2.92614e-02, False
+Levene.                       Statistic=     1.92, p=0.17624, True
+
+Mann–Whitney U test.          Statistic=   133.50, p=0.52049
+
+
+Comparison 4.3: Easy vs. Hard samples (Baseline Group)
+baseline_EASY (18) vs. baseline_HARD (18)
+------------------------------
+baseline_EASY (M = 0.302, SD = 0.257)
+baseline_HARD (M = 0.052, SD = 0.557)
+
+Shapiro-Wilk (baseline_EASY)  Statistic=     0.97, p=7.77265e-01, True
+Shapiro-Wilk (baseline_HARD)  Statistic=     0.85, p=9.34941e-03, False
+Levene.                       Statistic=     2.23, p=0.14458, True
+
+Mann–Whitney U test.          Statistic=   245.00, p=0.00872
+
+
+Comparison 4.4: Easy vs. Hard samples (XAI Group)
+xai_EASY (13) vs. xai_HARD (13)
+------------------------------
+xai_EASY (M = 0.422, SD = 0.846)
+xai_HARD (M = 0.020, SD = 0.904)
+
+Shapiro-Wilk (xai_EASY)  Statistic=     0.89, p=1.01671e-01, True
+Shapiro-Wilk (xai_HARD)  Statistic=     0.85, p=2.92614e-02, False
+Levene.                       Statistic=     0.03, p=0.87226, True
+
+Mann–Whitney U test.          Statistic=   115.50, p=0.11685
+

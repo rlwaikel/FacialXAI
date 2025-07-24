@@ -6,6 +6,7 @@ from tabulate import tabulate
 from matplotlib import pyplot as plt
 import seaborn as sns
 from wordcloud import WordCloud
+from create_merged_file import read_survey_data
 
 plt.rcParams['text.usetex'] = False
 plt.style.use('ggplot')
@@ -213,6 +214,124 @@ def plot_fig3(df, output_dir):
                              'fig-03-prediction-and-confidence-sample-difficulty.svg'))
     plt.close(fig)
 
+
+def plot_fig3_NEW(df, output_dir):
+    # Criteria: 
+    # 'We did decide it is better to split easy and hard images by participant’s initial accuracy instead of Ben’s grouping. 
+    # 'Figure 3 will need to be recreated with this new split. Below are the images for each group.'
+    # Easy (>70% average accuracy)
+    easy_samples = [
+        '22q11DSSlide210', 'KSSlide5', 'KSSlide133', 'NSSlide103',
+         'NSSlide198', 'WSSlide11', 'WSSlide228', 'WSSlide373', 'UnaffectedSlide229'
+    ]
+
+
+    i_baseline_easy = [i for i in range(0, df.shape[0]) if (df.iloc[i]['SlideName'] in easy_samples) and (df.iloc[i]['Group']=='baseline')]
+    i_baseline_hard = [i for i in range(0, df.shape[0]) if (df.iloc[i]['SlideName'] not in easy_samples) and (df.iloc[i]['Group']=='baseline')]
+    i_xai_easy = [i for i in range(0, df.shape[0]) if (df.iloc[i]['SlideName'] in easy_samples) and (df.iloc[i]['Group']=='xai')]
+    i_xai_hard = [i for i in range(0, df.shape[0]) if (df.iloc[i]['SlideName'] not in easy_samples) and (df.iloc[i]['Group']=='xai')]
+
+    fig, ax = plt.subplots(1, 2, figsize=(12, 5), layout='tight')
+
+    # Prediction improvement
+    df_group = df.iloc[i_baseline_easy].reset_index(drop=True)
+    baseline_EASY = pd.DataFrame([df_group[df_group['ResponseId']==ResponseId]['prediction_improvement'].mean() for ResponseId in sorted(set(df_group['ResponseId'].tolist()))]).squeeze().to_numpy()
+    df_group = df.iloc[i_baseline_hard].reset_index(drop=True)
+    baseline_HARD = pd.DataFrame([df_group[df_group['ResponseId']==ResponseId]['prediction_improvement'].mean() for ResponseId in sorted(set(df_group['ResponseId'].tolist()))]).squeeze().to_numpy()
+    df_group = df.iloc[i_xai_easy].reset_index(drop=True)
+    xai_EASY = pd.DataFrame([df_group[df_group['ResponseId']==ResponseId]['prediction_improvement'].mean() for ResponseId in sorted(set(df_group['ResponseId'].tolist()))]).squeeze().to_numpy()
+    df_group = df.iloc[i_xai_hard].reset_index(drop=True)
+    xai_HARD = pd.DataFrame([df_group[df_group['ResponseId']==ResponseId]['prediction_improvement'].mean() for ResponseId in sorted(set(df_group['ResponseId'].tolist()))]).squeeze().to_numpy()
+
+    df_ = pd.DataFrame(columns=['prediction improvement', 'Sample difficulty', 'Group'])
+    n = 0
+    for item in list(baseline_HARD):
+        df_.loc[n,:] = [item, 'difficult samples', 'Baseline group']
+        n += 1
+    for item in list(baseline_EASY):
+        df_.loc[n,:] = [item, 'more obvious clinical features', 'Baseline group']
+        n += 1
+    for item in list(xai_HARD):
+        df_.loc[n,:] = [item, 'difficult samples', 'XAI group']
+        n += 1
+    for item in list(xai_EASY):
+        df_.loc[n,:] = [item, 'more obvious clinical features', 'XAI group']
+        n += 1
+
+    box_plot1 = sns.boxplot(x="Sample difficulty", y="prediction improvement",
+                hue="Group", palette=['#E24A33', '#348ABD'],
+                data=df_, notch=False, 
+                            showmeans=True, 
+                            meanprops={'marker':'P', 'markeredgecolor':'black', 'markersize':'6'},
+                            width=0.4, ax=ax[0])
+    ax[0].grid(axis='x')
+    means = df_.groupby(['Sample difficulty', 'Group'])['prediction improvement'].mean()
+    box_plot1.text(0-0.3, round(means.iloc[0], 2), round(means.iloc[0], 3), horizontalalignment='center',size='11',color='k')
+    box_plot1.text(0+0.3, round(means.iloc[1], 2), round(means.iloc[1], 3), horizontalalignment='center',size='11',color='k')
+    box_plot1.text(1-0.3, round(means.iloc[2], 2), round(means.iloc[2], 3), horizontalalignment='center',size='11',color='k')
+    box_plot1.text(1+0.3, round(means.iloc[3], 2), round(means.iloc[3], 3), horizontalalignment='center',size='11',color='k')
+
+    for tick in ax[0].get_xticklabels():
+        tick.set_fontname("Arial")
+    for tick in ax[0].get_yticklabels():
+        tick.set_fontname("Arial")
+
+    ax[0].legend(loc='upper left', ncols=1, fontsize=16) 
+    ax[0].set_ylabel('Prediction improvement', fontname='Arial', fontsize=16)
+    ax[0].set_xlabel('AI model prediction', fontname='Arial', fontsize=16)
+
+    # Confidence improvement
+    df_group = df.iloc[i_baseline_easy].reset_index(drop=True)
+    baseline_EASY = pd.DataFrame([df_group[df_group['ResponseId']==ResponseId]['confidence_improvement'].mean() for ResponseId in sorted(set(df_group['ResponseId'].tolist()))]).squeeze().to_numpy()
+    df_group = df.iloc[i_baseline_hard].reset_index(drop=True)
+    baseline_HARD = pd.DataFrame([df_group[df_group['ResponseId']==ResponseId]['confidence_improvement'].mean() for ResponseId in sorted(set(df_group['ResponseId'].tolist()))]).squeeze().to_numpy()
+    df_group = df.iloc[i_xai_easy].reset_index(drop=True)
+    xai_EASY = pd.DataFrame([df_group[df_group['ResponseId']==ResponseId]['confidence_improvement'].mean() for ResponseId in sorted(set(df_group['ResponseId'].tolist()))]).squeeze().to_numpy()
+    df_group = df.iloc[i_xai_hard].reset_index(drop=True)
+    xai_HARD = pd.DataFrame([df_group[df_group['ResponseId']==ResponseId]['confidence_improvement'].mean() for ResponseId in sorted(set(df_group['ResponseId'].tolist()))]).squeeze().to_numpy()
+
+    df_ = pd.DataFrame(columns=['confidence improvement', 'Sample difficulty', 'Group'])
+    n = 0
+    for item in list(baseline_HARD):
+        df_.loc[n,:] = [item, 'difficult samples', 'Baseline group']
+        n += 1
+    for item in list(baseline_EASY):
+        df_.loc[n,:] = [item, 'more obvious clinical features', 'Baseline group']
+        n += 1
+    for item in list(xai_HARD):
+        df_.loc[n,:] = [item, 'difficult samples', 'XAI group']
+        n += 1
+    for item in list(xai_EASY):
+        df_.loc[n,:] = [item, 'more obvious clinical features', 'XAI group']
+        n += 1
+
+    box_plot2 = sns.boxplot(x="Sample difficulty", y="confidence improvement",
+                hue="Group", palette=['#E24A33', '#348ABD'],
+                data=df_, notch=False, 
+                            showmeans=True, 
+                            meanprops={'marker':'P', 'markeredgecolor':'black', 'markersize':'6'},
+                            width=0.4, ax=ax[1])
+    ax[1].grid(axis='x')
+    means = df_.groupby(['Sample difficulty', 'Group'])['confidence improvement'].mean()
+    box_plot2.text(0-0.3, round(means.iloc[0], 2), round(means.iloc[0], 3), horizontalalignment='center',size='11',color='k')
+    box_plot2.text(0+0.3, round(means.iloc[1], 2), round(means.iloc[1], 3), horizontalalignment='center',size='11',color='k')
+    box_plot2.text(1-0.3, round(means.iloc[2], 2), round(means.iloc[2], 3), horizontalalignment='center',size='11',color='k')
+    box_plot2.text(1+0.3, round(means.iloc[3], 2), round(means.iloc[3], 3), horizontalalignment='center',size='11',color='k')
+
+    for tick in ax[1].get_xticklabels():
+        tick.set_fontname("Arial")
+    for tick in ax[1].get_yticklabels():
+        tick.set_fontname("Arial")
+
+    ax[1].get_legend().remove()
+    ax[1].set_ylabel('Confidence improvement', fontname='Arial', fontsize=16)
+    ax[1].set_xlabel('AI model prediction', fontname='Arial', fontsize=16)
+
+    plt.savefig(pathlib.Path(output_dir, 
+                             'fig-03-prediction-and-confidence-sample-difficulty_NEW.svg'))
+    plt.close(fig)
+
+    
 def plot_fig4(df, output_dir):
     fig, ax = plt.subplots(1, 2, figsize=(12, 5), layout='tight')
 
@@ -971,18 +1090,50 @@ def statistical_tests(df):
     # Call the nested function to perform difficulty analysis
     difficulty_statistical_tests(df)
 
-# Example usage:
-if __name__ == "__main__":
-    df = pd.read_csv('output/merged_table.csv')
-    output_dir = pathlib.Path('output')
+def generate_plots_for_version(version):
+    """Generate all plots for a specific data version (v1 or v2)"""
+    print(f"Generating plots for {version} data...")
+    
+    # Read data for the specified version
+    read_survey_data(version=version)
+    
+    # Load the generated data
+    df = pd.read_csv(f'output/merged_table_{version}.csv')
+    
+    # Create output directory for this version
+    output_dir = pathlib.Path(f'output/{version}')
     output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Generate all plots
     plot_fig2(df, output_dir)
     plot_fig3(df, output_dir)
+    plot_fig3_NEW(df, output_dir)  # Generate new version of Figure 3
     plot_fig4(df, output_dir)
     plot_supp_fig1(df, output_dir)
     plot_supp_fig2(df, output_dir)
     plot_supp_fig3(df, output_dir)
     plot_supp_fig4(df, output_dir)
     plot_supp_fig5(df, output_dir)
+    
+    # Save correlation analysis to text file
+    import io
+    import sys
+    
+    old_stdout = sys.stdout
+    sys.stdout = captured_output = io.StringIO()
+    
     correlation_analysis(df)
     statistical_tests(df)
+    
+    sys.stdout = old_stdout
+    
+    with open(output_dir / f'correlation_statistical_analysis_{version}.txt', 'w') as f:
+        f.write(captured_output.getvalue())
+    
+    print(f"✅ Plots for {version} generated in output/{version}/")
+
+if __name__ == "__main__":
+    # Generate plots for both versions
+    generate_plots_for_version('v1')
+    generate_plots_for_version('v2')
+    print("All plots generated successfully!")
